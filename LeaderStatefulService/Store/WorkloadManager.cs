@@ -11,7 +11,7 @@ namespace LeaderStatefulService.Store
     [DataContract]
     public class WorkloadManager
     {
-        const int _defaultElements = 100;
+        const int _defaultElements = 10;
         private readonly WorkloadStore _store;
 
         [DataMember]

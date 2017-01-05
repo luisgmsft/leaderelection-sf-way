@@ -33,40 +33,9 @@ namespace WorkerStatelessService
             // TODO: Replace the following sample code with your own logic 
             //       or remove this RunAsync override if it's not needed in your service.
 
-            Thread.Sleep(20000);
-
-            try
-            {
-                var serviceUri = new Uri("fabric:/LeaderElectionSFWay/LeaderStatefulService");
-
-                //ServicePartitionResolver resolver = ServicePartitionResolver.GetDefault();
-
-                //ResolvedServicePartition partition =
-                //    await resolver.ResolveAsync(new Uri("fabric:/LeaderElectionSFWay/LeaderStatefulService"), new ServicePartitionKey(), cancellationToken);
-
-                //ILeaderService service = ServiceProxy.Create<ILeaderService>(partition.ServiceName);
-
-                //ServiceProxyFactory serviceProxyFactory = new ServiceProxyFactory(
-                //    (c) => new FabricTransportServiceRemotingClientFactory());
-
-                //ILeaderService service = serviceProxyFactory.CreateServiceProxy<ILeaderService>(
-                //    new Uri(serviceUri));
-
-                ILeaderService service = ServiceProxy.Create<ILeaderService>(serviceUri, new ServicePartitionKey(1));
-
-                //ILeaderService service = ServiceProxy.Create<ILeaderService>(new Uri("fabric:/LeaderElectionSFWay/LeaderStatefulService"));
-                var load = await service.GetWorkloadChunk();
-
-                var total = 0;
-                load.ForEach(e => total = total + e.Total);
-
-                await service.ReportResult(total);
-            }
-            catch (Exception ex)
-            {
-
-                throw;
-            }
+            // NOTE: Waits to "ensure" Leader starting first. Not realy needed.
+            //       Not sure if there's a better way (i.e. service dependency enforcement into SF).
+            await Task.Delay(10000);
 
             long iterations = 0;
 
@@ -74,9 +43,29 @@ namespace WorkerStatelessService
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
+                try
+                {
+                    // NOTE: move this to Service Config
+                    var serviceUri = new Uri("fabric:/LeaderElectionSFWay/LeaderStatefulService");
+
+                    ILeaderService service = ServiceProxy.Create<ILeaderService>(serviceUri, new ServicePartitionKey(1));
+
+                    var load = await service.GetWorkloadChunk();
+
+                    var total = 0;
+                    load.ForEach(e => total = total + e.Total);
+
+                    await service.ReportResult(total);
+                }
+                catch (Exception ex)
+                {
+
+                    throw;
+                }
+
                 ServiceEventSource.Current.ServiceMessage(this.Context, "Working-{0}", ++iterations);
 
-                await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+                await Task.Delay(TimeSpan.FromSeconds(20), cancellationToken);
             }
         }
     }

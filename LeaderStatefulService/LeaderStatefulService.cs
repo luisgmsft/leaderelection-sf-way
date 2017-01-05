@@ -31,6 +31,7 @@ namespace LeaderStatefulService
         public Task<List<ApplicationLog>> GetWorkloadChunk()
         {
             return manager.GetNextChunk();
+
         }
 
         public async Task ReportResult(int total)
@@ -79,34 +80,16 @@ namespace LeaderStatefulService
                     manager = await workloads.GetOrAddAsync(tx, _applicationLogWorkloadName, new WorkloadManager(new WorkloadStore()));
 
                     await tx.CommitAsync();
+
+                    //    //    ServiceEventSource.Current.ServiceMessage(this.Context, "Current Counter Value: {0}",
+                    //    //        result.HasValue ? result.Value.ToString() : "Value does not exist.");
                 }
                 catch (Exception ex)
                 {
-
+                    //    //    ServiceEventSource.Current.ServiceMessage(this.Context, "Current Counter Value: {0}",
+                    //    //        result.HasValue ? result.Value.ToString() : "Value does not exist.");
                     throw;
                 }
-                
-            }
-
-            while (true)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                //using (var tx = this.StateManager.CreateTransaction())
-                //{
-                //    var result = await workloads.TryGetValueAsync(tx, "Counter");
-
-                //    ServiceEventSource.Current.ServiceMessage(this.Context, "Current Counter Value: {0}",
-                //        result.HasValue ? result.Value.ToString() : "Value does not exist.");
-
-                //    await workloads.AddOrUpdateAsync(tx, "Counter", 0, (key, value) => { value.Total = value.Total + 1; return value; });
-
-                //    // If an exception is thrown before calling CommitAsync, the transaction aborts, all changes are 
-                //    // discarded, and nothing is saved to the secondary replicas.
-                //    await tx.CommitAsync();
-                //}
-
-                await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
             }
         }
     }
