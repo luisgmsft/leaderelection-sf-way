@@ -35,7 +35,7 @@ namespace WorkerStatelessService
 
             // NOTE: Waits to "ensure" Leader starting first. Not realy needed.
             //       Not sure if there's a better way (i.e. service dependency enforcement into SF).
-            await Task.Delay(10000);
+            await Task.Delay(20000);
 
             long iterations = 0;
 

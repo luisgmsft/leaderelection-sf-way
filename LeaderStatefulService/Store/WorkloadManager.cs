@@ -12,8 +12,7 @@ namespace LeaderStatefulService.Store
     public class WorkloadManager
     {
         const int _defaultElements = 10;
-        private readonly WorkloadStore _store;
-
+        
         [DataMember]
         public int AggregatedTotal { get; set; }
         [DataMember]
@@ -21,20 +20,24 @@ namespace LeaderStatefulService.Store
         [DataMember]
         public int ItemsPerPage { get; set; }
 
-        public WorkloadManager()
+        private WorkloadStore Store
         {
-            _store = new WorkloadStore();
+            get
+            {
+                // NOTE: ideally, there would be no need to recreate test
+                //       data over and over... :)
+                return new WorkloadStore();
+            }
         }
 
-        public WorkloadManager(WorkloadStore store, int itemsPerPage = _defaultElements)
+        public WorkloadManager(int itemsPerPage = _defaultElements)
         {
-            _store = store;
             ItemsPerPage = itemsPerPage;
         }
 
         public Task<List<ApplicationLog>> GetNextChunk()
         {
-            var result = _store.ApplicationLogs
+            var result = Store.ApplicationLogs
                 .Skip(Page * ItemsPerPage)
                 .Take(ItemsPerPage).ToList();
 

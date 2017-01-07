@@ -31,7 +31,6 @@ namespace LeaderStatefulService
         public Task<List<ApplicationLog>> GetWorkloadChunk()
         {
             return manager.GetNextChunk();
-
         }
 
         public async Task ReportResult(int total)
@@ -46,6 +45,13 @@ namespace LeaderStatefulService
 
                 await tx.CommitAsync();
             }
+
+            ServiceEventSource.Current.ServiceMessage(
+                        this.Context,
+                        "Manager fresh data. Leader at {0}. Aggregated: {1}, Page: {2}",
+                        Context.NodeContext.NodeName,
+                        manager.AggregatedTotal,
+                        manager.Page);
         }
 
         /// <summary>
@@ -68,29 +74,51 @@ namespace LeaderStatefulService
         /// <param name="cancellationToken">Canceled when Service Fabric needs to shut down this service replica.</param>
         protected override async Task RunAsync(CancellationToken cancellationToken)
         {
-            // TODO: Replace the following sample code with your own logic 
-            //       or remove this RunAsync override if it's not needed in your service.
-
             workloads = await this.StateManager.GetOrAddAsync<IReliableDictionary<string, WorkloadManager>>("workloads");
             
             using (var tx = this.StateManager.CreateTransaction())
             {
                 try
                 {
-                    manager = await workloads.GetOrAddAsync(tx, _applicationLogWorkloadName, new WorkloadManager(new WorkloadStore()));
+                    manager = await workloads.GetOrAddAsync(tx, _applicationLogWorkloadName, new WorkloadManager());
 
                     await tx.CommitAsync();
 
-                    //    //    ServiceEventSource.Current.ServiceMessage(this.Context, "Current Counter Value: {0}",
-                    //    //        result.HasValue ? result.Value.ToString() : "Value does not exist.");
+                    ServiceEventSource.Current.ServiceMessage(
+                        this.Context,
+                        "Manager as the Fenix, under newly Elected Leader at {0}. Aggregated: {1}, Page: {2}",
+                        Context.NodeContext.NodeName,
+                        manager.AggregatedTotal,
+                        manager.Page);
                 }
                 catch (Exception ex)
                 {
-                    //    //    ServiceEventSource.Current.ServiceMessage(this.Context, "Current Counter Value: {0}",
-                    //    //        result.HasValue ? result.Value.ToString() : "Value does not exist.");
+                    ServiceEventSource.Current.ServiceMessage(
+                        this.Context,
+                        "Failure at RunAsync on Leader {0}. {1}",
+                        Context.NodeContext.NodeName,
+                        ex.Message);
                     throw;
                 }
             }
+
+            while (true)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                await Task.Delay(40000, cancellationToken);
+
+                if (manager.Page > 0 && IsDivisble(manager.Page, 3))
+                {
+                    ServiceEventSource.Current.ServiceMessage(this.Context, "Leader {0} forced takedown...", Context.NodeContext.NodeName);
+                    throw new ApplicationException("Force failure");
+                }
+            }
+        }
+
+        private bool IsDivisble(int x, int n)
+        {
+            return (x % n) == 0;
         }
     }
 }
