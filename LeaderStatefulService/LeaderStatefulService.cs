@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Fabric;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.ServiceFabric.Data.Collections;
@@ -106,7 +105,7 @@ namespace LeaderStatefulService
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                await Task.Delay(40000, cancellationToken);
+                await Task.Delay(20000, cancellationToken);
 
                 if (manager.Page > 0 && IsDivisble(manager.Page, 3))
                 {

@@ -1,17 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Fabric;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.ServiceFabric.Services.Communication.Runtime;
 using Microsoft.ServiceFabric.Services.Runtime;
-using Shared;
 using Shared.Service;
 using Microsoft.ServiceFabric.Services.Remoting.Client;
 using Microsoft.ServiceFabric.Services.Client;
-using Microsoft.ServiceFabric.Services.Remoting.FabricTransport.Client;
-using Microsoft.ServiceFabric.Services.Communication.Client;
 
 namespace WorkerStatelessService
 {
@@ -35,37 +29,28 @@ namespace WorkerStatelessService
 
             // NOTE: Waits to "ensure" Leader starting first. Not realy needed.
             //       Not sure if there's a better way (i.e. service dependency enforcement into SF).
+            //       Altenatives in SO answer here:
+            //       http://stackoverflow.com/questions/41370742/azure-service-fabric-specify-service-application-startup-dependency
             await Task.Delay(20000);
-
-            long iterations = 0;
+            //
 
             while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                try
-                {
-                    // NOTE: move this to Service Config
-                    var serviceUri = new Uri("fabric:/LeaderElectionSFWay/LeaderStatefulService");
+                // NOTE: move this to Service Config
+                var serviceUri = new Uri("fabric:/LeaderElectionSFWay/LeaderStatefulService");
 
-                    ILeaderService service = ServiceProxy.Create<ILeaderService>(serviceUri, new ServicePartitionKey(1));
+                ILeaderService service = ServiceProxy.Create<ILeaderService>(serviceUri, new ServicePartitionKey(1));
 
-                    var load = await service.GetWorkloadChunk();
+                var load = await service.GetWorkloadChunk();
 
-                    var total = 0;
-                    load.ForEach(e => total = total + e.Total);
+                var total = 0;
+                load.ForEach(e => total = total + e.Total);
 
-                    await service.ReportResult(total);
-                }
-                catch (Exception ex)
-                {
+                await service.ReportResult(total);
 
-                    throw;
-                }
-
-                ServiceEventSource.Current.ServiceMessage(this.Context, "Working-{0}", ++iterations);
-
-                await Task.Delay(TimeSpan.FromSeconds(20), cancellationToken);
+                await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
             }
         }
     }
