@@ -15,7 +15,7 @@ namespace LeaderStatefulService.Store
 
         private void InitializeStore()
         {
-            ApplicationLogs = Enumerable.Range(0, 1000)
+            ApplicationLogs = Enumerable.Range(0, 100)
                 .Select(i =>
                 {
                     var appLog = new ApplicationLog { Total = i };

@@ -1,4 +1,5 @@
-﻿using Shared;
+﻿using Microsoft.ServiceFabric.Services.Runtime;
+using Shared;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
@@ -31,6 +32,7 @@ namespace LeaderStatefulService.Store
         public WorkloadManager(int itemsPerPage = _defaultElements)
         {
             ItemsPerPage = itemsPerPage;
+            Page = -1;
         }
 
         public Task<List<ApplicationLog>> GetNextChunk()
@@ -38,8 +40,6 @@ namespace LeaderStatefulService.Store
             var result = Store.ApplicationLogs
                 .Skip(Page * ItemsPerPage)
                 .Take(ItemsPerPage).ToList();
-
-            Page = Page + 1;
 
             return Task.FromResult(result);
         }

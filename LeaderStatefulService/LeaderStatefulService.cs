@@ -27,9 +27,39 @@ namespace LeaderStatefulService
             : base(context)
         { }
 
-        public Task<List<ApplicationLog>> GetWorkloadChunk()
+        public async Task<List<ApplicationLog>> GetWorkloadChunk()
         {
-            return manager.GetNextChunk();
+            using (var tx = this.StateManager.CreateTransaction())
+            {
+                await workloads.AddOrUpdateAsync(tx, _applicationLogWorkloadName, manager, (key, instance) =>
+                {
+                    instance.Page = instance.Page + 1;
+                    return instance;
+                });
+
+                await tx.CommitAsync();
+            }
+
+            var result = await manager.GetNextChunk();
+
+            if (result == null || result.Count == 0)
+            {
+                using (var tx = this.StateManager.CreateTransaction())
+                {
+                    await workloads.AddOrUpdateAsync(tx, _applicationLogWorkloadName, manager, (key, instance) =>
+                    {
+                        instance.AggregatedTotal = 0;
+                        instance.Page = 0;
+                        return instance;
+                    });
+
+                    await tx.CommitAsync();
+                }
+
+                result = await manager.GetNextChunk();
+            }
+
+            return result;
         }
 
         public async Task ReportResult(int total)
@@ -38,7 +68,7 @@ namespace LeaderStatefulService
             {
                 await workloads.AddOrUpdateAsync(tx, _applicationLogWorkloadName, manager, (key, instance) =>
                 {
-                    instance.AggregatedTotal = manager.AggregatedTotal + total;
+                    instance.AggregatedTotal = instance.AggregatedTotal + total;
                     return instance;
                 });
 
